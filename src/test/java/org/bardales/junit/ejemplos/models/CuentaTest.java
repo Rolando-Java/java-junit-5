@@ -6,19 +6,52 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.math.BigDecimal;
 import org.bardales.junit.ejemplos.exceptions.DineroInsuficienteException;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 
+@TestInstance(Lifecycle.PER_CLASS)
 class CuentaTest {
 
-    @Test
-    void testNombreCuenta() {
-        Cuenta cuenta = new Cuenta("Andres", new BigDecimal("1000.12345"));
+    Cuenta cuenta;
 
+    @BeforeAll
+    void beforeAll() {
+        System.out.println("incializando el test");
+    }
+
+    @AfterAll
+    void afterAll() {
+        System.out.println("finalizando el test");
+    }
+
+    @BeforeEach
+    void initMetodoTest() {
+        this.cuenta = new Cuenta("Andres", new BigDecimal("1000.12345"));
+        System.out.println("Iniciando el metodo.");
+    }
+
+    @AfterEach
+    void tearDown() {
+        System.out.println("finalizando el metodo");
+    }
+
+    @Test   //Define que el metodo es una prueba unitaria que se va a ejecutar
+    @DisplayName("probando el nombre de la cuenta corriente")
+        //]Define la descripcion del test
+    void testNombreCuenta() {
         String esperado = "Andres";
-        String real = cuenta.getPersona();
+        String real = this.cuenta.getPersona();
 
         /*
           Setear los mensaje de error con expresiones lambda, para lograr que solo instancien los mensajes
@@ -32,16 +65,17 @@ class CuentaTest {
     }
 
     @Test
+    @DisplayName("probando el saldo de la cuenta corriente, que no sea null, mayor que cero, valor esperado.")
     void testSaldoCuenta() {
-        Cuenta cuenta = new Cuenta("Andres", new BigDecimal("1000.12345"));
-        assertNotNull(cuenta.getSaldo());
-        assertEquals(1000.12345D, cuenta.getSaldo().doubleValue());
-        assertFalse(cuenta.getSaldo().compareTo(BigDecimal.ZERO) < 0);
-        assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0);
+        assertNotNull(this.cuenta.getSaldo());
+        assertEquals(1000.12345D, this.cuenta.getSaldo().doubleValue());
+        assertFalse(this.cuenta.getSaldo().compareTo(BigDecimal.ZERO) < 0);
+        assertTrue(this.cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0);
     }
 
 
     @Test
+    @DisplayName("testeando referencias que sean iguales con el metodo equals.")
     void testReferenciaCuenta() {
         Cuenta cuenta = new Cuenta("John Doe", new BigDecimal("8900.9997"));
         Cuenta cuentaDos = new Cuenta("John Doe", new BigDecimal("8900.9997"));
@@ -51,29 +85,26 @@ class CuentaTest {
 
     @Test
     void testDebitoCuenta() {
-        Cuenta cuenta = new Cuenta("Andres", new BigDecimal("1000.12345"));
-        cuenta.debito(new BigDecimal(100));
+        this.cuenta.debito(new BigDecimal(100));
 
-        assertNotNull(cuenta.getSaldo());
-        assertEquals(900, cuenta.getSaldo().intValue());
-        assertEquals("900.12345", cuenta.getSaldo().toPlainString());
+        assertNotNull(this.cuenta.getSaldo());
+        assertEquals(900, this.cuenta.getSaldo().intValue());
+        assertEquals("900.12345", this.cuenta.getSaldo().toPlainString());
     }
 
     @Test
     void testCreditoCuenta() {
-        Cuenta cuenta = new Cuenta("Andres", new BigDecimal("1000.12345"));
-        cuenta.credito(new BigDecimal(100));
+        this.cuenta.credito(new BigDecimal(100));
 
-        assertNotNull(cuenta.getSaldo());
-        assertEquals(1100, cuenta.getSaldo().intValue());
-        assertEquals("1100.12345", cuenta.getSaldo().toPlainString());
+        assertNotNull(this.cuenta.getSaldo());
+        assertEquals(1100, this.cuenta.getSaldo().intValue());
+        assertEquals("1100.12345", this.cuenta.getSaldo().toPlainString());
     }
 
     @Test
     void testDineroInsuficienteException() {
-        Cuenta cuenta = new Cuenta("Andres", new BigDecimal("1000.12345"));
         Exception exception = assertThrows(DineroInsuficienteException.class, () -> {
-            cuenta.debito(new BigDecimal(1500));
+            this.cuenta.debito(new BigDecimal(1500));
         });
         String actual = exception.getMessage();
         String esperado = "Dinero insuficiente";
@@ -93,9 +124,12 @@ class CuentaTest {
     }
 
     @Test
+    @Disabled   //Deshabilita la ejecucion del test
+    @DisplayName("probando relaciones entre las cuentas y el banco con assertAll.")
     void testRelacionBancoCuentas() {
-        Cuenta cuenta1 = new Cuenta("John Doe", new BigDecimal("2500"));
-        Cuenta cuenta2 = new Cuenta("Andres", new BigDecimal("1500.8989"));
+        fail("forzando error"); //Fuerza el error de test
+        final Cuenta cuenta1 = new Cuenta("John Doe", new BigDecimal("2500"));
+        final Cuenta cuenta2 = new Cuenta("Andres", new BigDecimal("1500.8989"));
 
         Banco banco = new Banco();
         banco.addCuenta(cuenta1);
@@ -116,11 +150,9 @@ class CuentaTest {
                 () -> assertEquals("Andres", banco.getCuentas().stream().map(Cuenta::getPersona)
                                 .filter(s -> s.equals("Andres")).findFirst().get(),
                         () -> "no se encontro a esa persona entre las cuentas del banco."),
-                () -> assertTrue(
-                        banco.getCuentas().stream().map(Cuenta::getPersona)
+                () -> assertTrue(banco.getCuentas().stream().map(Cuenta::getPersona)
                                 .anyMatch(s -> s.equals("John Doe")),
-                        "no existe esa personas en las cuentas del banco.")
-        );
+                        "no existe esa personas en las cuentas del banco."));
 
 
     }
