@@ -7,8 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assumptions.assumingThat;
 
 import java.math.BigDecimal;
+import java.util.Map;
+import java.util.Properties;
 import org.bardales.junit.ejemplos.exceptions.DineroInsuficienteException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -17,21 +21,37 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
+import org.junit.jupiter.api.condition.DisabledOnJre;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.condition.EnabledOnJre;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.JRE;
+import org.junit.jupiter.api.condition.OS;
 
-@TestInstance(Lifecycle.PER_CLASS)
+/*
+@TestInstance(Lifecycle.PER_METHOD) --> (por defecto) e indica que se crea una instancia por cada
+ejecucion de test
+
+@TestInstance(Lifecycle.PER_CLASS) --> indica que se crea una sola instancia de la clase
+para la ejecucion de todos los test. Es decir, que tanto BeforeAll y AfterAll ya no deben ser
+metodos estaticos
+ */
+//@TestInstance(Lifecycle.PER_CLASS)
 class CuentaTest {
 
     Cuenta cuenta;
 
     @BeforeAll
-    void beforeAll() {
+    static void beforeAll() {
         System.out.println("incializando el test");
     }
 
     @AfterAll
-    void afterAll() {
+    static void afterAll() {
         System.out.println("finalizando el test");
     }
 
@@ -157,4 +177,129 @@ class CuentaTest {
 
     }
 
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    void testSoloWindows() {
+
+    }
+
+    @Test
+    @EnabledOnOs({OS.LINUX, OS.MAC})
+    void testSoloLinuxMac() {
+
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void testNoWindows() {
+
+    }
+
+    @Test
+    @EnabledOnJre(JRE.JAVA_8)
+    void testSoloJdk8() {
+
+    }
+
+    @Test
+    @EnabledOnJre(JRE.JAVA_17)
+    void testSoloJdk17() {
+
+    }
+
+    @Test
+    @DisabledOnJre(JRE.JAVA_17)
+    void testNoJdk17() {
+
+    }
+
+    /*
+     Las propiedades del sistema de la maquina viritual de java o las
+     que se establecen en la linea de comandos utilizando
+     la -Dpropertyname=valuesintaxis
+     */
+    @Test
+    void imprimirSystemProperties() {
+        Properties properties = System.getProperties();
+        properties.forEach((o, o2) -> System.out.println(o + " " + o2));
+    }
+
+    @Test
+    @EnabledIfSystemProperty(named = "java.version", matches = "17.0.1")
+    void testJavaVersion() {
+
+    }
+
+    @Test
+    @DisabledIfSystemProperty(named = "os.arch", matches = "\\w*64\\w*")
+    void testNo64() {
+
+    }
+
+    /*
+     Las variables de entorno se establecen en el sistema operativo
+     */
+    @Test
+    void imprimirEnviromentVariables() {
+        Map<String, String> getenv = System.getenv();
+        getenv.forEach((s, s2) -> System.out.println(s + " " + s2));
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "JAVA_HOME", matches = ".*jdk-17.0.1.*")
+    void testJavaHome() {
+
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "NUMBER_OF_PROCESSORS", matches = "8")
+    void testProcesadores8() {
+
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "USERNAME", matches = "lucas")
+    void testEnv() {
+
+    }
+
+    @Test
+    @DisabledIfEnvironmentVariable(named = "NUMBER_OF_PROCESSORS", matches = "16")
+    void testNoProcesadores16() {
+
+    }
+
+    @Test
+    void testJdkDev() {
+        boolean esJdk17Dev = "17".equals(System.getProperty("java.specification.version"));
+        /*
+         si se cumple la condicion del assummeTrue, entonces se ejecutara las demas instrucciones
+         que le siguen a este. Caso contrario, se deshabilitara y abortara la ejecucion del test,
+          y no se ejecutara las demas instrucciones.
+         */
+        assumeTrue(esJdk17Dev);
+        assertNotNull(this.cuenta.getSaldo());
+        assertEquals(1000.12345D, this.cuenta.getSaldo().doubleValue());
+        assertFalse(this.cuenta.getSaldo().compareTo(BigDecimal.ZERO) < 0);
+        assertTrue(this.cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0);
+    }
+
+    @Test
+    void testJdkDev2() {
+        boolean esJdk17Dev = "17".equals(System.getProperty("java.specification.version"));
+        /*
+         si se cumple la condicion del asummingThat, entonces se ejecutara las demas instrucciones
+         que contiene. Caso contrario, se deshabilitara la ejecucion de las intrucciones que este contiene.
+         Sin embargo aunque la condicion no se cumpla las instrucciones que esta fuera del assumingThat
+         se ejecutaran
+         */
+        assumingThat(esJdk17Dev, () -> {
+            assertNotNull(this.cuenta.getSaldo());
+            assertEquals(1000.12345D, this.cuenta.getSaldo().doubleValue());
+        });
+
+        assertFalse(this.cuenta.getSaldo().compareTo(BigDecimal.ZERO) < 0);
+        assertTrue(this.cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0);
+
+    }
 }
