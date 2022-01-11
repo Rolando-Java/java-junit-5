@@ -24,6 +24,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.RepetitionInfo;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
@@ -54,11 +55,19 @@ class CuentaTest {
 
     Cuenta cuenta;
 
+    /*
+     esta anotacion indica que el metodo se ejecutara solo una vez durante la compilacion de la clase
+     y antes que se creen las instancias de esta clase
+     */
     @BeforeAll
     static void beforeAll() {
         System.out.println("incializando el test");
     }
 
+    /*
+     esta anotacion indica que el metodo se ejecutara solo una vez durante la compilacion de la clase
+     y despues que se ejecuten las instancias de esta clase
+     */
     @AfterAll
     static void afterAll() {
         System.out.println("finalizando el test");
@@ -68,17 +77,35 @@ class CuentaTest {
         return List.of("100", "200", "300", "500", "700", "1000.12345");
     }
 
+    /*
+     esta anotacion indica que se ejecutara al inicio de cada instancia de esta clase. Es decir, por
+     cada test unitario que se ejecute. Cabe resaltar, que se ejecutara antes del metodo test
+     */
     @BeforeEach
     void initMetodoTest() {
         this.cuenta = new Cuenta("Andres", new BigDecimal("1000.12345"));
         System.out.println("Iniciando el metodo.");
     }
 
+    /*
+     esta anotacion indica que se ejecutara al final de cada instancia de esta clase. Es decir, por
+     cada test unitario que se ejecute. Cabe resaltar, que se ejecutara despues del metodo test
+     */
     @AfterEach
     void tearDown() {
         System.out.println("finalizando el metodo");
     }
 
+    /*
+     esta anotacion nos permite definir palabras clave a cada metodo o clase que agrupe metodos
+     test. De forma que podamos ejecutar solo aquellos que tengan como tag una palabra
+     clave en especifico
+    */
+    @Tag("cuenta")
+    @Tag("error")
+    /*
+     anotacion que define que el metodo es una prueba unitaria
+     */
     @Test
     void testDineroInsuficienteException() {
         Exception exception = assertThrows(DineroInsuficienteException.class, () -> {
@@ -89,8 +116,13 @@ class CuentaTest {
         assertEquals(esperado, actual);
     }
 
+    @Tag("cuenta")
+    @Tag("banco")
     @Test
-    @Disabled   //Deshabilita la ejecucion del test
+    /*
+     esta anotacion desahbilita la ejecucion del test
+     */
+    @Disabled
     @DisplayName("probando relaciones entre las cuentas y el banco con assertAll.")
     void testRelacionBancoCuentas() {
         fail("forzando error"); //Fuerza el error de test
@@ -104,7 +136,10 @@ class CuentaTest {
         banco.setNombre("Banco del Estado");
         banco.transferir(cuenta2, cuenta1, new BigDecimal(500));
 
-        // el metodo assertAll muestra un reporte de errores, en caso hubiera, de los assertions ejecutados
+        /*
+         El metodo assertAll ejecuta todos los assertions que contiene sin importar si uno dea error.
+         Posteriormente, muestra un reporte de errores de los assertions, en caso hubiera.
+         */
         assertAll(() -> assertEquals("1000.8989", cuenta2.getSaldo().toPlainString(),
                         () -> "el valor del saldo de la cuenta 2 no es el esperado."),
                 () -> assertEquals("3000", cuenta1.getSaldo().toPlainString(),
@@ -123,11 +158,13 @@ class CuentaTest {
 
     }
 
-    // esta anotacion te permite repetir un test mas de una vez
+    /*
+     esta anotacion te permite repetir la ejecucion de un test mas de una vez
+     */
+    // haciendo uso de las expresiones para modificar el mensaje de cada repeticion
     @RepeatedTest(value = 5, name = "{displayName} - " + "Repeticion numero {currentRepetition} de "
             + "{totalRepetitions}")
-    // haciendo uso de las expresiones para modificar el mensaje de la repeticion
-    @DisplayName("Probando Debito Cuenta Repetir")
+    @DisplayName("probando Debito Cuenta Repetir")
     void testDebitoCuentaRepetir(RepetitionInfo info) {
         /*
          mediante la clase RepetitionInfo podemos ejecutar
@@ -140,15 +177,27 @@ class CuentaTest {
 
         this.cuenta.debito(new BigDecimal(100));
 
-        assertNotNull(this.cuenta.getSaldo());
-        assertEquals(900, this.cuenta.getSaldo().intValue());
-        assertEquals("900.12345", this.cuenta.getSaldo().toPlainString());
+        /*
+         setear los mensajes de error con expresiones lambda, para lograr que se instancien
+         en caso no se cumpla los assertions
+        */
+        assertNotNull(this.cuenta.getSaldo(), () -> "el valor del saldo es nulo");
+        assertEquals(900, this.cuenta.getSaldo().intValue(),
+                () -> "el valor del saldo no es el esperado");
+        assertEquals("900.12345", this.cuenta.getSaldo().toPlainString(),
+                () -> "el valor del saldo no es el esperado");
     }
 
+    @Tag("param")
+    /*
+     esta anotacion nos permite parametrizar los test
+     */
     @ParameterizedTest(name = "{displayName} - numero {index} ejecutando con valor {argumentsWithNames}")
+    /*
+     esta anotacion lama a un metodo para obtener los parametros. El metodo debe ser static
+     */
     @MethodSource("montoList")
-    //lama a un metodo para obtener los parametros. El metodo debe ser static
-    @DisplayName("Test Debito Cuenta Parametrizado con Method Source")
+    @DisplayName("test Debito Cuenta Parametrizado con Method Source")
     void testDebitoCuentaMethodSource(String monto) {
         cuenta.debito(new BigDecimal(monto));
 
@@ -159,17 +208,20 @@ class CuentaTest {
 
     @Test
     void testJdkDev() {
-        boolean esJdk17Dev = "17".equals(System.getProperty("java.specification.version"));
+        boolean esJdk17Dev = "16".equals(System.getProperty("java.specification.version"));
         /*
          si se cumple la condicion del assummeTrue, entonces se ejecutara las demas instrucciones
          que le siguen a este. Caso contrario, se deshabilitara y abortara la ejecucion del test,
           y no se ejecutara las demas instrucciones.
          */
-        assumeTrue(esJdk17Dev);
-        assertNotNull(cuenta.getSaldo());
-        assertEquals(1000.12345D, cuenta.getSaldo().doubleValue());
-        assertFalse(cuenta.getSaldo().compareTo(BigDecimal.ZERO) < 0);
-        assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0);
+        assumeTrue(esJdk17Dev, () -> "no se cumplio con la version del jdk");
+        assertNotNull(cuenta.getSaldo(), () -> "el valor del saldo es nulo");
+        assertEquals(1000.12345D, cuenta.getSaldo().doubleValue(),
+                () -> "el valor del saldo no es el esperado");
+        assertFalse(cuenta.getSaldo().compareTo(BigDecimal.ZERO) < 0,
+                () -> "el valor del saldo es menor 0");
+        assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0,
+                () -> "el valor del saldo es menor o igual a 0");
     }
 
     @Test
@@ -182,23 +234,39 @@ class CuentaTest {
          se ejecutaran
          */
         assumingThat(esJdk17Dev, () -> {
-            assertNotNull(cuenta.getSaldo());
-            assertEquals(1000.12345D, cuenta.getSaldo().doubleValue());
+            assertNotNull(cuenta.getSaldo(), () -> "el valor del saldo es nulo");
+            assertEquals(1000.12345D, cuenta.getSaldo().doubleValue(),
+                    () -> "el valor del saldo no es el esperado");
         });
 
-        assertFalse(cuenta.getSaldo().compareTo(BigDecimal.ZERO) < 0);
-        assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0);
+        assertFalse(cuenta.getSaldo().compareTo(BigDecimal.ZERO) < 0,
+                () -> "el valor del saldo es menor que 0");
+        assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0,
+                () -> "el valor del saldo es menor o igual a 0");
 
     }
 
+    @Tag("param")
+    /*
+     anotacion que permite a la inner class agrupar test unitarios
+     */
     @Nested
+    /*
+     define la descripcion de la clase que agrupa los test
+     */
     @DisplayName("Test Debito Cuenta Parametrizado")
     class PruebasParametrizadas {
 
-        // esta anotacion nos permite parametrizar los test
         @ParameterizedTest(name = "{displayName} - numero {index} ejecutando con valor {argumentsWithNames}")
+        /*
+         esta anotacion define un arreglo de valores de un tipo en especifico, para luego
+         pasarlo como parametro
+         */
         @ValueSource(strings = {"100", "200", "300", "500", "700", "1000.12345"})
-        @DisplayName("Value Source")
+        /*
+         define la descripcion del test
+         */
+        @DisplayName("value source")
         void testDebitoCuentaValueSource(String monto) {
             cuenta.debito(new BigDecimal(monto));
 
@@ -208,8 +276,12 @@ class CuentaTest {
         }
 
         @ParameterizedTest(name = "{displayName} - numero {index} ejecutando con valor {argumentsWithNames}")
+        /*
+         esta anotacion define valores tipo csv que son separados por comas, para luego
+         pasarlos a cada parametro definido en el metodo
+         */
         @CsvSource({"1,100", "2,200", "3,300", "4,500", "5,700", "6,1000.12345"})
-        @DisplayName("Csv Source")
+        @DisplayName("csv source")
         void testDebitoCuentaCsvSource(String index, String monto) {
             System.out.println(index + " -> " + monto);
             cuenta.debito(new BigDecimal(monto));
@@ -222,7 +294,7 @@ class CuentaTest {
         @ParameterizedTest(name = "{displayName} - numero {index} ejecutando con valor {argumentsWithNames}")
         @CsvSource({"200,100,John,Andres", "250,200,Pepe,Pepe", "300,300,maria,Maria",
                 "510,500,Pepa,Pepa", "750,700,Lucas,Luca", "1000.12345,1000.12345,Cata,Cata"})
-        @DisplayName("Csv Source 2")
+        @DisplayName("csv source 2")
         void testDebitoCuentaCsvSource2(String saldo, String monto, String esperado,
                 String actual) {
             System.out.println(saldo + " -> " + monto);
@@ -239,8 +311,12 @@ class CuentaTest {
         }
 
         @ParameterizedTest(name = "{displayName} - numero {index} ejecutando con valor {argumentsWithNames}")
+        /*
+         esta anotacion llama a un archivo csv que define valores por comas, para luego
+         pasarlos a cada parametro definido en el metodo
+         */
         @CsvFileSource(resources = "/data.csv")
-        @DisplayName("Csv File Source")
+        @DisplayName("csv file source")
         void testDebitoCuentaCsvFileSource(int index, String monto) {
             System.out.println(index + " -> " + monto);
             cuenta.debito(new BigDecimal(monto));
@@ -252,7 +328,7 @@ class CuentaTest {
 
         @ParameterizedTest(name = "{displayName} - numero {index} ejecutando con valor {argumentsWithNames}")
         @CsvFileSource(resources = "/data2.csv")
-        @DisplayName("Csv File Source 2")
+        @DisplayName("csv file source 2")
         void testDebitoCuentaCsvFileSource2(String saldo, String monto, String esperado,
                 String actual) {
             cuenta.setSaldo(new BigDecimal(saldo));
@@ -269,22 +345,17 @@ class CuentaTest {
 
     }
 
-    // la anotacion Nested nos permite organizar nuestras anotaciones unit test
+    @Tag("cuenta")
     @Nested
-    @DisplayName("probando atributos de la cuenta corriente") // Define la descripcion de la clase
+    @DisplayName("Probando atributos de la cuenta corriente")
     class CuentaTestNombreSaldo {
 
-        @Test   //Define que el metodo es una prueba unitaria que se va a ejecutar
+        @Test
         @DisplayName("el nombre!")
-            //Define la descripcion del test
         void testNombreCuenta() {
             String esperado = "Andres";
             String real = cuenta.getPersona();
 
-            /*
-              Setear los mensaje de error con expresiones lambda, para lograr que solo instancien los mensajes
-              en caso no se cumpla los assertions
-            */
             assertNotNull(real, () -> "la cuenta no puede ser nula.");
             assertEquals(esperado, real, () -> String.format(
                     "el nombre de la cuenta no es el que se esperaba: se esperaba %1$s sin embargo fue %2$s .",
@@ -296,10 +367,13 @@ class CuentaTest {
         @Test
         @DisplayName("el saldo, que no sea null, mayor que cero, valor esperado.")
         void testSaldoCuenta() {
-            assertNotNull(cuenta.getSaldo());
-            assertEquals(1000.12345D, cuenta.getSaldo().doubleValue());
-            assertFalse(cuenta.getSaldo().compareTo(BigDecimal.ZERO) < 0);
-            assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0);
+            assertNotNull(cuenta.getSaldo(), () -> "el valor del saldo es nulo");
+            assertEquals(1000.12345D, cuenta.getSaldo().doubleValue(),
+                    () -> "el valor del saldo no es el esperado");
+            assertFalse(cuenta.getSaldo().compareTo(BigDecimal.ZERO) < 0,
+                    () -> "el valor del saldo es menor que 0");
+            assertTrue(cuenta.getSaldo().compareTo(BigDecimal.ZERO) > 0,
+                    () -> "el valor del saldo es menor o igual a 0");
         }
 
 
@@ -309,7 +383,7 @@ class CuentaTest {
             Cuenta cuenta = new Cuenta("John Doe", new BigDecimal("8900.9997"));
             Cuenta cuentaDos = new Cuenta("John Doe", new BigDecimal("8900.9997"));
 
-            assertEquals(cuentaDos, cuenta);
+            assertEquals(cuentaDos, cuenta, () -> "la cuenta no es el mismo que el esperado");
         }
 
     }
@@ -317,24 +391,32 @@ class CuentaTest {
     @Nested
     class CuentaOperacionesTest {
 
+        @Tag("cuenta")
         @Test
         void testDebitoCuenta() {
             cuenta.debito(new BigDecimal(100));
 
-            assertNotNull(cuenta.getSaldo());
-            assertEquals(900, cuenta.getSaldo().intValue());
-            assertEquals("900.12345", cuenta.getSaldo().toPlainString());
+            assertNotNull(cuenta.getSaldo(), () -> "el valor del saldo es nulo");
+            assertEquals(900, cuenta.getSaldo().intValue(),
+                    () -> "el valor del saldo no es el esperado");
+            assertEquals("900.12345", cuenta.getSaldo().toPlainString(),
+                    () -> "el valor del saldo no es el esperado");
         }
 
+        @Tag("cuenta")
         @Test
         void testCreditoCuenta() {
             cuenta.credito(new BigDecimal(100));
 
-            assertNotNull(cuenta.getSaldo());
-            assertEquals(1100, cuenta.getSaldo().intValue());
-            assertEquals("1100.12345", cuenta.getSaldo().toPlainString());
+            assertNotNull(cuenta.getSaldo(), () -> "el valor del saldo es nulo");
+            assertEquals(1100, cuenta.getSaldo().intValue(),
+                    () -> "el valor del saldo no es el esperado");
+            assertEquals("1100.12345", cuenta.getSaldo().toPlainString(),
+                    () -> "el valor del saldo no es el esperado");
         }
 
+        @Tag("cuenta")
+        @Tag("banco")
         @Test
         void testTransferirDineroCuentas() {
             Cuenta cuenta1 = new Cuenta("John Doe", new BigDecimal("2500"));
@@ -343,29 +425,43 @@ class CuentaTest {
             Banco banco = new Banco();
             banco.setNombre("Banco del Estado");
             banco.transferir(cuenta2, cuenta1, new BigDecimal(500));
-            assertEquals("1000.8989", cuenta2.getSaldo().toPlainString());
-            assertEquals("3000", cuenta1.getSaldo().toPlainString());
+            assertEquals("1000.8989", cuenta2.getSaldo().toPlainString(),
+                    () -> "el valor del saldo no es el esperado");
+            assertEquals("3000", cuenta1.getSaldo().toPlainString(),
+                    () -> "el valor del saldo no es el esperado");
         }
 
     }
 
     @Nested
+    @DisplayName("Test Sistema operativo")
     class SistemaOperativoTest {
 
         @Test
+        /*
+         esta anotacion permite activar la ejecucion del test
+         en un sistema operativo especifico
+         */
         @EnabledOnOs(OS.WINDOWS)
+        @DisplayName("activar ejecucion de test para OS windows")
         void testSoloWindows() {
 
         }
 
         @Test
         @EnabledOnOs({OS.LINUX, OS.MAC})
+        @DisplayName("desactivar ejecucion de test para OS Linux o Mac")
         void testSoloLinuxMac() {
 
         }
 
         @Test
+        /*
+         esta anotacion permite desactivar la ejecucion del test
+         en un sistema operativo especifico
+         */
         @DisabledOnOs(OS.WINDOWS)
+        @DisplayName("desactivar ejecucion de test para OS Windows")
         void testNoWindows() {
 
         }
@@ -373,22 +469,34 @@ class CuentaTest {
     }
 
     @Nested
+    @DisplayName("Test java version")
     class JavaVersionTest {
 
         @Test
+        /*
+         esta anotacion permite activar la ejecucion del test
+         si se usa una version de JRE especifico
+         */
         @EnabledOnJre(JRE.JAVA_8)
+        @DisplayName("activar ejecucion para java version 8")
         void testSoloJdk8() {
 
         }
 
         @Test
         @EnabledOnJre(JRE.JAVA_17)
+        @DisplayName("activar ejecucion para java version 17")
         void testSoloJdk17() {
 
         }
 
         @Test
+        /*
+         esta anotacion permite desactivar la ejecucion del test
+         si se usa una version de JRE especifico
+         */
         @DisabledOnJre(JRE.JAVA_17)
+        @DisplayName("desactivar ejecucion para java version 17")
         void testNoJdk17() {
 
         }
@@ -396,6 +504,7 @@ class CuentaTest {
     }
 
     @Nested
+    @DisplayName("Test variables de propiedades del JVM")
     class SistemPropertiesTest {
 
         /*
@@ -404,19 +513,30 @@ class CuentaTest {
          la -Dpropertyname=valuesintaxis
         */
         @Test
+        @DisplayName("listando variables de propiedades")
         void imprimirSystemProperties() {
             Properties properties = System.getProperties();
             properties.forEach((o, o2) -> System.out.println(o + " " + o2));
         }
 
         @Test
+        /*
+         esta anotacion me permite activar la ejecucion del test si hay relacion
+         con la variable de propiedad
+         */
         @EnabledIfSystemProperty(named = "java.version", matches = "17.0.1")
+        @DisplayName("java version para activar ejecucion")
         void testJavaVersion() {
 
         }
 
         @Test
+        /*
+         esta anotacion me permite activar la ejecucion del test si hay relacion
+         con la variable de propiedad
+         */
         @DisabledIfSystemProperty(named = "os.arch", matches = "\\w*64\\w*")
+        @DisplayName("arquitectura OS para desactivar ejecucion")
         void testNo64() {
 
         }
@@ -424,37 +544,51 @@ class CuentaTest {
     }
 
     @Nested
+    @DisplayName("Test variables de ambiente")
     class VariableAmbienteTest {
 
         /*
          Las variables de entorno se establecen en el sistema operativo
          */
         @Test
+        @DisplayName("listando variables de ambiente")
         void imprimirEnviromentVariables() {
             Map<String, String> getenv = System.getenv();
             getenv.forEach((s, s2) -> System.out.println(s + " " + s2));
         }
 
         @Test
+        /*
+         esta anotacion me permite activar la ejecucion del test si hay relacion
+         con la variable de ambiente
+         */
         @EnabledIfEnvironmentVariable(named = "JAVA_HOME", matches = ".*jdk-17.0.1.*")
+        @DisplayName("java home para activar ejecucion")
         void testJavaHome() {
 
         }
 
         @Test
         @EnabledIfEnvironmentVariable(named = "NUMBER_OF_PROCESSORS", matches = "8")
+        @DisplayName("numero de procesadores para activar ejecucion")
         void testProcesadores8() {
 
         }
 
         @Test
         @EnabledIfEnvironmentVariable(named = "USERNAME", matches = "lucas")
+        @DisplayName("nombre de usuario para activar ejecucion")
         void testEnv() {
 
         }
 
         @Test
+        /*
+         esta anotacion me permite desactivar la ejecucion del test si hay
+         relacion con la variable de ambiente
+         */
         @DisabledIfEnvironmentVariable(named = "NUMBER_OF_PROCESSORS", matches = "16")
+        @DisplayName("numero de procesadores para desactivar ejecucion")
         void testNoProcesadores16() {
 
         }
