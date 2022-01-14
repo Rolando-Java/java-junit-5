@@ -7,11 +7,33 @@
   <groupId>org.bardales.junit</groupId>
   <artifactId>java-junit-5</artifactId>
   <version>1.0</version>
+  <build>
+    <plugins>
+      <!--
+       plugin que permite correr los test unitarios
+       como parte del ciclo de maven
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.0.0-M5</version>
+        <!--
+        permite configurar el grupo de test unitarios
+        que se desea correr. Por ejemplo, solo
+        los que tengan dicho nombre de tag
+        -->
+        <configuration>
+          <groups>timeout,cuenta</groups>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
   <properties>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
   </properties>
+
 
   <dependencies>
     <!--
