@@ -5,15 +5,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.junit.jupiter.api.Assumptions.assumingThat;
 
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import org.bardales.junit.ejemplos.exceptions.DineroInsuficienteException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -26,6 +30,9 @@ import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.RepetitionInfo;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.TestReporter;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.condition.DisabledOnJre;
@@ -55,6 +62,9 @@ class CuentaTest {
 
     Cuenta cuenta;
 
+    private TestInfo testInfo;
+    private TestReporter testReporter;
+
     /*
      esta anotacion indica que el metodo se ejecutara solo una vez durante la compilacion de la clase
      y antes que se creen las instancias de esta clase
@@ -82,9 +92,29 @@ class CuentaTest {
      cada test unitario que se ejecute. Cabe resaltar, que se ejecutara antes del metodo test
      */
     @BeforeEach
-    void initMetodoTest() {
+    void beforeEach(TestInfo testInfo, TestReporter testReporter) {
         this.cuenta = new Cuenta("Andres", new BigDecimal("1000.12345"));
+
+        /*
+         el objeto TestInfo haciendo uso de reflexion nos permite acceder a la informacion que
+         un metodo unitario pueda tener, como por ejemplo: su displayname, el nombre de la clase
+         al que pertenece, el nombre del metodo, los tags que pueda tener el o la clase que lo
+         contiene, etc.
+         */
+        this.testInfo = testInfo;
+        /*
+         el objeto TestReporter permite imprimir el mensaje, a través de la salida
+         del sistema log de junit platform. En donde se puede apreciar que ademas del mensaje
+         se imprime la fecha en que ocurrio
+        */
+        this.testReporter = testReporter;
         System.out.println("Iniciando el metodo.");
+
+        this.testReporter.publishEntry(
+                "ejecutando : " + testInfo.getDisplayName() + " nombre clase : "
+                        + testInfo.getTestClass().map(Class::getSimpleName).orElse("")
+                        + " , nombre metodo : " + testInfo.getTestMethod().map(Method::getName)
+                        .orElse("") + " con las etiquetas : " + testInfo.getTags());
     }
 
     /*
@@ -92,7 +122,7 @@ class CuentaTest {
      cada test unitario que se ejecute. Cabe resaltar, que se ejecutara despues del metodo test
      */
     @AfterEach
-    void tearDown() {
+    void afterEach() {
         System.out.println("finalizando el metodo");
     }
 
@@ -108,6 +138,10 @@ class CuentaTest {
      */
     @Test
     void testDineroInsuficienteException() {
+        /*
+         si se cumple que la condicion de que la excepcion lanzada pertenece
+         a dichas clase, entonces se retorna la excepcion
+         */
         Exception exception = assertThrows(DineroInsuficienteException.class, () -> {
             this.cuenta.debito(new BigDecimal(1500));
         });
@@ -246,6 +280,42 @@ class CuentaTest {
 
     }
 
+    @Tag("timeout")
+    @Nested
+    @DisplayName("Test timeout")
+    class EjemploTimeoutTest {
+
+        @Test
+        /*
+         esta anotacion controla que la ejecucion no
+         demore mas del tiempo indicado. Caso contrari se retornara
+         una excepcion de TimeoutException
+         */
+        @Timeout(1)
+        @DisplayName("en segundos")
+        void pruebaTimeout() throws InterruptedException {
+            TimeUnit.MILLISECONDS.sleep(900);
+        }
+
+        @Test
+        @Timeout(value = 1000, unit = TimeUnit.MILLISECONDS)
+        @DisplayName("en milisegundos")
+        void pruebaTimeout2() throws InterruptedException {
+            TimeUnit.MILLISECONDS.sleep(900);
+        }
+
+        @Test
+        void testTimeoutAssertions() {
+            /*
+             este assert procura condiciona a no pasarse del tiempo indicado.
+             Caso contrario, se botara el mensaje de error.
+            */
+            assertTimeout(Duration.ofSeconds(5), () -> TimeUnit.MILLISECONDS.sleep(4900),
+                    () -> "la tarea demoro mas del tiempo debido");
+        }
+
+    }
+
     @Tag("param")
     /*
      anotacion que permite a la inner class agrupar test unitarios
@@ -353,6 +423,9 @@ class CuentaTest {
         @Test
         @DisplayName("el nombre!")
         void testNombreCuenta() {
+            if (testInfo.getTags().contains("cuenta")) {
+                testReporter.publishEntry("hacer algo con la etiqueta");
+            }
             String esperado = "Andres";
             String real = cuenta.getPersona();
 
@@ -388,11 +461,13 @@ class CuentaTest {
 
     }
 
+    @Tag("cuenta")
     @Nested
+    @DisplayName("probando movimiento en la cuenta corriente")
     class CuentaOperacionesTest {
 
-        @Tag("cuenta")
         @Test
+        @DisplayName("debito")
         void testDebitoCuenta() {
             cuenta.debito(new BigDecimal(100));
 
@@ -403,8 +478,8 @@ class CuentaTest {
                     () -> "el valor del saldo no es el esperado");
         }
 
-        @Tag("cuenta")
         @Test
+        @DisplayName("credito")
         void testCreditoCuenta() {
             cuenta.credito(new BigDecimal(100));
 
@@ -415,9 +490,9 @@ class CuentaTest {
                     () -> "el valor del saldo no es el esperado");
         }
 
-        @Tag("cuenta")
         @Tag("banco")
         @Test
+        @DisplayName("transferir dinero")
         void testTransferirDineroCuentas() {
             Cuenta cuenta1 = new Cuenta("John Doe", new BigDecimal("2500"));
             Cuenta cuenta2 = new Cuenta("Andres", new BigDecimal("1500.8989"));
