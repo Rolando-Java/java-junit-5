@@ -23,7 +23,7 @@
         los que tengan dicho nombre de tag
         -->
         <configuration>
-          <groups>timeout,cuenta</groups>
+          <groups>timeout,cuenta,examen</groups>
         </configuration>
       </plugin>
     </plugins>
@@ -49,11 +49,30 @@
       <version>5.8.2</version>
       <scope>test</scope>
     </dependency>
+    <!--
+     Dependency core de mockito
+     -->
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>4.2.0</version>
+      <scope>test</scope>
+    </dependency>
+    <!--
+    Dependency use mockito with junit5
+    -->
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>4.2.0</version>
+      <scope>test</scope>
+    </dependency>
     <!-- Dependency for lombok -->
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
-      <version>1.18.20</version>
+      <version>1.18.22</version>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
 

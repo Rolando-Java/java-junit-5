@@ -109,6 +109,7 @@ class CuentaTest {
         */
         this.testReporter = testReporter;
         System.out.println("Iniciando el metodo.");
+        System.out.println("Iniciando el metodo.");
 
         this.testReporter.publishEntry(
                 "ejecutando : " + testInfo.getDisplayName() + " nombre clase : "
