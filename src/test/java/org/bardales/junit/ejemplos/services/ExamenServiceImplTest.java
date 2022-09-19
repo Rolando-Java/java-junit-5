@@ -47,8 +47,8 @@ class ExamenServiceImplTest {
     PreguntaRepository preguntaRepository;
 
     /*
-     esta anotación permite inyectar los mocks incializados, mediante
-     inyección de constructor
+     esta anotación crea una instancia de la clase e inyecta los simulacros
+     que se crean con las anotaciones @Mock o @Spy
      */
     @InjectMocks
     ExamenServiceImpl examenService;
@@ -176,7 +176,7 @@ class ExamenServiceImplTest {
              hacer uso de la interface Answer para interactuar con el
              valor que va a retornar el mockito
             */
-            when(examenRepository.guardar(any(Examen.class))).then(invocationOnMock -> {
+            when(examenRepository.guardar(any(Examen.class))).thenAnswer(invocationOnMock -> {
                 Examen examen = invocationOnMock.getArgument(0, Examen.class);
                 examen.setId(secuencia.getAndIncrement());
                 return examen;
