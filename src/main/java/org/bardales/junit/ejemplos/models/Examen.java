@@ -2,11 +2,13 @@ package org.bardales.junit.ejemplos.models;
 
 import java.util.ArrayList;
 import java.util.List;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
+@EqualsAndHashCode
 public class Examen {
 
     private Long id;
